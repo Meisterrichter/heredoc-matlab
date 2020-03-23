@@ -1,7 +1,10 @@
 function heredoc_out = heredoc(filename)
 %heredoc_out = heredoc(filename)
 %
-% Read embedded heredoc/herestring entries from the comments in a .m file
+% Read embedded heredoc/herestring entries from the comments in a .m file.
+%
+% Use of heredoc expressions avoids copious and annoying application of
+% MATLAB string quotes/line continuation for multi-line embedded strings.
 %
 % Inputs:
 %   filename (optional) - The full path to the .m file to be parsed for
@@ -138,7 +141,10 @@ function comments = get_comments(filename)
 %multiline string
 
 file_text = fileread(filename);
-file_lines = splitlines(file_text);
+
+%split the file lines
+tmp = textscan(file_text, '%s', 'Delimiter', '\n', 'Whitespace', '');
+file_lines = tmp{1};
 
 %find all standard comment lines
 has_std_comment = ~cellfun(@isempty,...
@@ -181,7 +187,7 @@ end
 function heredoc_out = get_heredoc(text)
 %Parse comment text for embedded heredoc expressions
 
-nl = newline;
+nl = char(10); %#ok<CHARTEN>
 %get the angle bracket heredocs
 [heredoc_angle, m_start_angle, m_end_angle] = regexp(text, [...
     '(?xm) #enable regex freespacing/multiline mode' nl ...
@@ -189,7 +195,7 @@ nl = newline;
     '(?<varname>[a-zA-Z]\S*) #varname must start with a letter' nl ...
     '[\t ]* =? [\t ]* <<<? (?<modifier>[~-])? #the modifier must come directly after the angle brackets (before any spaces)' nl ...
     '[\t ]* (?<delimiter>\S+) [ \t]*\n #ignore any spaces to end of the line' nl ...
-    '(?<content>.*?)(?=\n(?(modifier)[\t ]*|)\k<delimiter>)  #capture content until the delimiter' nl ...
+    '(?<content>.*?)(?=\n(?(2)[\t ]*|)\3)  #capture content until the delimiter' nl ...
     ], 'names', 'start', 'end');
 
 %get the python-style (triple quote) strings
